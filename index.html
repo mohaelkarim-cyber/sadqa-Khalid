@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quran for Engineer Khalid</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Noto+Naskh+Arabic:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap">
 <style>
 /* Layout: one centered reading column. Dedication on top, the assigned verse as the focal card, reader count and progress below. */
 :root{
@@ -7,7 +7,7 @@
   --accent:#0f6b57; --accent-fg:#ffffff; --gold:#8a6a1c; --soft:#e4efeb;
   --f-display:'Space Grotesk','Inter',system-ui,sans-serif;
   --f-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --f-quran:'Amiri Quran','Traditional Arabic','Geeza Pro','Noto Naskh Arabic',serif;
+  --f-quran:'Amiri Quran','Noto Naskh Arabic','Scheherazade New','Geeza Pro','Traditional Arabic',serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0c1714; --surface:#13231f; --fg:#e6f0ec; --muted:#93a8a1; --line:#25392f;
@@ -28,7 +28,11 @@ h1{font-family:var(--f-display);font-weight:600;font-size:1.6rem;line-height:1.2
   background:var(--soft);color:var(--accent);border-radius:999px;padding:5px 14px}
 .ref{text-align:center;color:var(--muted);font-size:.95rem}
 .ref b{color:var(--fg);font-weight:600}
-.ayah{font-family:var(--f-quran);font-size:clamp(1.7rem,6.4vw,2.4rem);line-height:2.2;text-align:center;margin:0;overflow-wrap:anywhere}
+.ayah{font-family:var(--f-quran);font-size:clamp(1.6rem,6vw,2.3rem);line-height:2.3;text-align:center;margin:0;
+  overflow-wrap:normal;word-break:normal;letter-spacing:0;word-spacing:.12em;font-kerning:normal;text-rendering:optimizeLegibility;
+  -webkit-font-feature-settings:"liga" 1,"calt" 1;font-feature-settings:"liga" 1,"calt" 1;unicode-bidi:isolate}
+.num{display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;height:1.9em;margin-inline:.35em;border:1.5px solid var(--gold);
+  border-radius:50%;color:var(--gold);font-family:var(--f-body);font-size:.5em;line-height:1;vertical-align:middle;padding:0 .2em}
 .tr{text-align:center;color:var(--muted);margin:0;max-width:58ch;align-self:center;text-wrap:pretty}
 .ask{border-top:1px solid var(--line);padding-top:14px;text-align:center;font-size:.95rem}
 .ask .ar{font-family:var(--f-quran);font-size:1.25rem;line-height:2;display:block;color:var(--accent)}
@@ -83,8 +87,10 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 (function(){
   var Q = JSON.parse(document.getElementById('qdata').textContent);
   var TOTAL = Q.v.length; // 6236
-  var KEY = 'khalid-quran-assigned-v1';
-  var API = 'https://api.counterapi.dev/v1/eng-khalid-quran-sadaqah/readers';
+  var KEY = 'khalid-quran-assigned-v2';
+  var API = 'https://api.counterapi.dev/v1/eng-khalid-quran-sadaqah/readers-v2';
+  var API2 = 'https://abacus.jasoncameron.dev';
+  if (location.hash === '#reset'){ try{ localStorage.removeItem(KEY); }catch(e){} }
   var $ = function(id){return document.getElementById(id)};
   var AR = function(n){return String(n).replace(/\d/g,function(d){return '٠١٢٣٤٥٦٧٨٩'[d]})};
 
@@ -93,7 +99,11 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     var s = Q.s[v[0]];
     $('badge').textContent = label;
     $('ref').innerHTML = 'Surah <b>' + s[1] + '</b> (' + s[2] + '), verse <b>' + v[1] + '</b>';
-    $('ayah').textContent = v[2] + ' ۝' + AR(v[1]);
+    var a = $('ayah');
+    a.textContent = v[2] + ' ';
+    var num = document.createElement('span');
+    num.className = 'num'; num.textContent = AR(v[1]);
+    a.appendChild(num);
     $('tr').textContent = v[3];
   }
   function showCount(total){
@@ -123,18 +133,27 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       return;
     }
     showVerse(0, 'Opening verse');
+    var total = null;
     try{
       // The service returns the new total; this reader's 0-based position is total - 1.
       var r = await getJSON(API + '/up');
-      var total = r.count || 1, n = total - 1;
+      if (typeof r.count === 'number') total = r.count;
+    }catch(e){}
+    if (total === null){
+      try{
+        var r2 = await getJSON(API2 + '/hit/eng-khalid-quran-sadaqah/readers-v2');
+        if (typeof r2.value === 'number') total = r2.value;
+      }catch(e){}
+    }
+    if (total !== null && total >= 1){
+      var n = total - 1;
       save(n);
       showVerse(n, 'Reader no. ' + total.toLocaleString());
       showCount(total);
       $('status').textContent = 'Your verse is saved on this device. Reopening this page shows the same verse.';
-    }catch(e){
-      var n2 = Math.floor(Date.now() / 1000) % TOTAL;
-      showVerse(n2, 'Your verse');
-      $('status').innerHTML = '<span class="warn">The shared counter could not be reached, so this verse is not counted in the sequence. Reload to try again.</span>';
+    }else{
+      showVerse(0, 'Opening verse');
+      $('status').innerHTML = '<span class="warn">The shared counter could not be reached, so your place in the sequence is not counted. Reload to try again.</span>';
     }
   }
   start();
