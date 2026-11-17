@@ -90,7 +90,8 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   var KEY = 'khalid-quran-assigned-v2';
   var API = 'https://api.counterapi.dev/v1/eng-khalid-quran-sadaqah/readers-v2';
   var API2 = 'https://abacus.jasoncameron.dev';
-  if (location.hash === '#reset'){ try{ localStorage.removeItem(KEY); }catch(e){} }
+  try{ localStorage.removeItem(KEY); }catch(e){} // clear the old per-device verse from earlier versions
+  if (location.hash === '#reset'){ try{ sessionStorage.removeItem(KEY); }catch(e){} }
   var $ = function(id){return document.getElementById(id)};
   var AR = function(n){return String(n).replace(/\d/g,function(d){return '٠١٢٣٤٥٦٧٨٩'[d]})};
 
@@ -114,8 +115,9 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
     $('pfill').style.width = (inRound / TOTAL * 100) + '%';
     $('pbar').setAttribute('aria-valuenow', inRound);
   }
-  function loadSaved(){ try{ var s = JSON.parse(localStorage.getItem(KEY)); return (s && typeof s.n === 'number') ? s.n : null; }catch(e){ return null; } }
-  function save(n){ try{ localStorage.setItem(KEY, JSON.stringify({n:n})); }catch(e){} }
+  // Per-tab memory only: a refresh keeps the same verse, but each new visit gets the next one.
+  function loadSaved(){ try{ var s = JSON.parse(sessionStorage.getItem(KEY)); return (s && typeof s.n === 'number') ? s.n : null; }catch(e){ return null; } }
+  function save(n){ try{ sessionStorage.setItem(KEY, JSON.stringify({n:n})); }catch(e){} }
   function getJSON(url){ return fetch(url, {cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
 
   $('copy').addEventListener('click', function(){
@@ -150,7 +152,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
       save(n);
       showVerse(n, 'Reader no. ' + total.toLocaleString());
       showCount(total);
-      $('status').textContent = 'Your verse is saved on this device. Reopening this page shows the same verse.';
+      $('status').textContent = 'Each new visit receives the next verse. Refreshing this tab keeps your verse.';
     }else{
       showVerse(0, 'Opening verse');
       $('status').innerHTML = '<span class="warn">The shared counter could not be reached, so your place in the sequence is not counted. Reload to try again.</span>';
